@@ -1,0 +1,6 @@
+name = Backup nogzip options
+description = Allows foregoing gzip on backups on selected sites
+core = 6.x
+package = Hosting
+dependencies[] = hosting_site
+dependencies[] = hosting_site_backup_manager
