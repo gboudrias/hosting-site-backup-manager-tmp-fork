@@ -8,13 +8,11 @@ function hosting_backup_nogzip_form_alter(&$form, $form_state, $form_id) {
     $task_name = $form['task']['#value'];
 
     if (in_array($task_name, array('backup', 'migrate', 'clone'))) {
-      $backup_default = variable_get('hosting_backup_nogzip_default_' . $task_name, FALSE);
-
       $form['parameters']['nogzip'] = array(
         '#type' => 'checkbox',
         '#title' => t('Do not use gzip for this backup.'),
         '#description' => t('If checked, the archive will not be compressed. This makes the task less resource-intensive, but will take up much more space (probably 5-10x).'),
-        '#default_value' => $backup_default,
+        '#default_value' => FALSE,
         '#weight' => 5,
       );
     }
@@ -22,99 +20,5 @@ function hosting_backup_nogzip_form_alter(&$form, $form_state, $form_id) {
     $form['#submit'][] = 'hosting_backup_nogzip_form_submit';
 
     return $form;
-  }
-
-/*
-  if ($form_id == 'hosting_site_backup_manager_settings' && user_access('administer hosting backup queue')) {
-  }
-*/
-}
-
-function hosting_backup_nogzip_form_submit($form, &$form_state) {
-//  drush_set_option('nogzip',  $form_state['values']['parameters']['nogzip']);
-//  dsm('TEST: ' . $form_state['values']['parameters']['nogzip']);
-}
-
-/**
-* Implementation of hook_insert()
-*/
-function hosting_backup_nogzip_insert($node) {
-  return;
-  if ((!empty($node->hosting_backup_nogzip_settings)) && ($node->hosting_backup_nogzip_settings != 'default')) {
-    $record = array(
-      'site_id' => $node->nid,
-      'status' => $node->hosting_backup_nogzip_status,
-      'schedule' => $node->hosting_backup_nogzip_schedule,
-    );
-    drupal_write_record('hosting_backup_nogzip_sites_settings', $record);
-
-  }
-}
-
-/**
-* Implementation of hook_update()
-*/
-function hosting_backup_nogzip_update($node) {
-  return;
-  if (!empty($node->hosting_backup_nogzip_settings)) {
-    if ($node->hosting_backup_nogzip_settings == 'default') {
-      hosting_backup_nogzip_delete($node);
-    }
-    else {
-      $record = array(
-        'site_id' => $node->nid,
-        'status' => $node->hosting_backup_nogzip_status,
-        'schedule' => $node->hosting_backup_nogzip_schedule,
-      );
-      if (db_result(db_query('SELECT count(*) FROM {hosting_backup_nogzip_sites_settings} WHERE site_id = %d', $node->nid))) {
-        // Update
-        drupal_write_record('hosting_backup_nogzip_sites_settings', $record, 'site_id');
-      }
-      else {
-        // Insert
-        drupal_write_record('hosting_backup_nogzip_sites_settings', $record);
-      }
-    }
-  }
-}
-
-/**
-* Implementation of hook_delete()
-*/
-function hosting_backup_nogzip_delete($node) {
-//  db_query("DELETE FROM {hosting_backup_nogzip_sites_settings} WHERE site_id = %d", $node->nid);
-}
-
-/**
-* Implementation of hook_nodeapi()
-*/
-function hosting_backup_nogzip_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
-  return;
-  if ($node->type == 'site') {
-    switch ($op) {
-    case 'insert':
-        hosting_backup_nogzip_insert($node);
-        break;
-      case 'update':
-        hosting_backup_nogzip_update($node);
-        break;
-      case 'delete' :
-        hosting_backup_nogzip_delete($node);
-        break;
-      case 'load':
-        $additions = array();
-        if ($record = db_fetch_object(db_query("SELECT status, schedule FROM {hosting_backup_nogzip_sites_settings} WHERE site_id = %d", $node->nid))) {
-          $additions['hosting_backup_nogzip_settings'] = 'custom';
-          $additions['hosting_backup_nogzip_status'] = $record->status;
-          $additions['hosting_backup_nogzip_schedule'] = $record->schedule;
-        }
-        else {
-          $additions['hosting_backup_nogzip_settings'] = 'default';
-          $additions['hosting_backup_nogzip_status'] = variable_get('hosting_backup_nogzip_default_enabled', TRUE) ? 'enabled' : 'disabled';
-          $additions['hosting_backup_nogzip_schedule'] = variable_get('hosting_backup_nogzip_default_interval', strtotime('1 day', 0));
-        }
-        return $additions;
-        break;
-    }
   }
 }
